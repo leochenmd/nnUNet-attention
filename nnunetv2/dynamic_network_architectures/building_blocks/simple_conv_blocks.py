@@ -119,6 +119,11 @@ class StackedConvBlocksWithAttention(nn.Module):
             ]
         )
 
+        #######################################
+        ### MODIFICATIONS TO nnUnet START HERE
+        #######################################
+
+        ### classification encoder
         self.classify_convs = nn.Sequential(
             ConvDropoutNormReLU(
                 conv_op, input_channels, output_channels[0], kernel_size, initial_stride, conv_bias, norm_op,
@@ -133,27 +138,33 @@ class StackedConvBlocksWithAttention(nn.Module):
             ]
         )
 
-        #self.conv1x1 =
+        ### attention gate
+        self.attention_gate = nn.Sequential(nn.LeakyReLU,
+                                            conv_op(output_channels[-1], output_channels = 1, kernel_size = 1, stride = 1, conv_bias, norm_op = None,
+                                                    norm_op_kwargs, dropout_op, dropout_op_kwargs, nonlin = None, nonlin_kwargs = None, nonlin_first = False),
+                                            nn.Sigmoid)
 
-        # self.output_channels = features_per_stage
+
+        # self.output_channels is basically 'features_per_stage' in plans.json
         self.output_channels = output_channels[-1]     # takes the end of the stack
         self.initial_stride = maybe_convert_scalar_to_list(conv_op, initial_stride)
 
     def forward(self, x):
-        ### ADD ATTENTION GATE here
-        #classify = self.classify_convs(x)
+        classify = self.classify_convs(x)
+        alpha = self.attention_gate(self.convs(x) + classify)
+        return (alpha * classify)
+
+        ### begin attention GATE
         #x = self.convs(x) + classify              ###sum = LeakyReLU(conv_seg + conv_classify)
         #x = torch.nn.LeakyReLU(x)
-
         #x = self.conv1x1(x)                          ### feat = conv(sum)    # 1 x 1 x 1 convolution
         #alpha = sigmoid(x)
 
-        #classify = classify * alpha
+        #classify = classify * alpha               ### elemente wise multiplication
         ### end attention GATE
-
         #return classify
 
-        return self.convs(x)
+        #return self.convs(x)
 
     def compute_conv_feature_map_size(self, input_size):
         assert len(input_size) == len(self.initial_stride), "just give the image size without color/feature channels or " \
