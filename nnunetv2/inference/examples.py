@@ -47,7 +47,7 @@ if __name__ == '__main__':
     predicted_segmentations = predictor.predict_from_files([[join(indir, 'liver_152_0000.nii.gz')],
                                                             [join(indir, 'liver_142_0000.nii.gz')]],
                                                            None,
-                                                           save_probabilities=True, overwrite=True,
+                                                           save_probabilities=True, overwrite=True,               # "save_probabilities" returns segmentation
                                                            num_processes_preprocessing=2,
                                                            num_processes_segmentation_export=2,
                                                            folder_with_segs_from_prev_stage=None, num_parts=1,
